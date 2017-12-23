@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>列表操作-审核</title>
+    <link href="http://res.layui.com/layui/dist/css/layui.css"  rel="stylesheet" type="text/css"/>
+    <script type="text/javascript" src="https://cdn.bootcss.com/jquery/3.2.1/jquery.js"></script>
+    <script src="https://cdn.bootcss.com/layer/3.1.0/layer.js"></script>
+    <style>
+            .ac8{
+                position:relative;
+            }
+            .audit-ul{
+                min-width:80px;
+                background:#fff;
+                border:1px solid #666;
+                border-radius:3px;
+                position:absolute;
+                left:0;
+                top:0;
+                z-index:10;
+            }
+            .audit-ul>li>a{
+                display:block;
+                padding:5px 10px;
+                cursor:pointer;
+            }
+            .audit-ul>li:nth-child(1)>a{
+                color:green;
+            }
+            .audit-ul>li:nth-child(2)>a{
+                color:red;
+            }
+    </style>
+</head>
+<body>
+    <table class="layui-table">
+        <thead>
+            <tr>
+                <th>审核状态</th>
+                <th>操作</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td>待审核/审核通过/审核未通过</td>
+                <td>
+                    <a href="javascript:void(0)" onclick="audit(this,'1')">审核</a>
+                </td>
+            </tr>
+            <tr>
+                <td>待审核/审核通过/审核未通过</td>
+                <td>
+                    <a href="javascript:void(0)" onclick="audit(this,'2')">审核</a>
+                </td>
+            </tr>
+        </tbody>
+    </table>
+</body>
+</html>
+<script>
+        var jQuery = $;
+        //审核下操作
+        //option{
+        //	id:id,
+        //	left:左边距，
+        //	top：上边距
+        //}
+        function createul(id,left,top){
+            //1,如果重复点击同一个审核按钮，这里防止重复创建ul;
+            //2,点击其他行下的审核按钮，已有的ul要先移除再创建;
+            var $ulObj = jQuery(".audit-ul");
+            if($ulObj){
+                $ulObj.remove();
+            }
+            //创建
+            var ul=document.createElement("ul");
+            ul.setAttribute("id",id)
+            ul.setAttribute("class","audit-ul");
+            ul.style.cssText="left:"+left+"px;top:"+top+"px;"    
+            var vals = ['审核通过','审核不通过'];//显示内容数组
+            var Browser_Name = navigator.appName;
+            for(var i=0;i<2;i++){
+                var li = document.createElement('li');
+                var a = document.createElement('a');
+                a.setAttribute('href',"javascript:void(0)");
+                a.innerHTML = vals[i];
+                //为审核通过与审核不通过绑定事件
+                var is_IE = (Browser_Name == "Microsoft Internet Explorer"); //判读是否为ie浏览器
+                if (is_IE) {
+                    a.attachEvent("click", function () { auditP(this,id); });
+                }
+                else {
+                    a.addEventListener("click", function () { auditP(this,id); }, false);
+                }
+                li.appendChild(a);
+                li.style.cssText="padding-left:0;"
+                ul.appendChild(li);
+            }
+            document.body.appendChild(ul);
+        }
+        
+        //审核
+        //option{
+        //	obj:this,
+        //	id:id,
+        //}
+        function audit(obj,id,e){
+            window.event? window.event.cancelBubble = true : e.stopPropagation();
+            var a = jQuery(obj).text();
+            var t = jQuery(obj).offset().top+26;
+            var l = jQuery(obj).offset().left-10;
+            //加载审核下操作
+            createul(id,l,t)
+            var $ulObj = jQuery("#"+id);
+            if($ulObj){
+                jQuery(document).click(function(){
+                    $ulObj.remove();
+                })
+            }
+        }
+        
+        //审核--通过/不通过
+        function auditP(obj,id){
+            var state;
+            var ygPrice = null;
+            var cashPrice = null;
+            var auditText = jQuery(obj).text();
+            //审核通过
+            if(auditText == "审核通过"){
+                state = "1";
+                layer.open({
+                    type: 1,
+                    title:'设置',
+                    skin: 'layui-layer-rim', //加上边框
+                    area: ['450px', '290px'], //宽高
+                    btn:['确定','取消'],
+                    content:'<div style="height: auto; padding-bottom: 10px;">'+
+                                '<form class="layui-form" action>'+
+                                    '<div class="layui-form-item" style="margin-top:15px;">'+
+                                        '<div class="layui-item">'+
+                                          '<label class="layui-form-label">价格</label>'+
+                                          '<div class="layui-input-block" style="width:236px;">'+
+                                            '<input type="text" name="cash_price" placeholder="￥" autocomplete="off" class="layui-input">'+
+                                          '</div>'+
+                                        '</div>'+
+                                    '</div>'+
+                                    '<div class="layui-form-item">'+
+                                        '<div class="layui-item">'+
+                                          '<label class="layui-form-label">银果</label>'+
+                                          '<div class="layui-input-block" style="width:236px;">'+
+                                            '<input type="text" name="yg_price" placeholder="￥" autocomplete="off" class="layui-input">'+
+                                          '</div>'+
+                                        '</div>'+
+                                    '</div>'+
+                                '</form>'+
+                            '</div>',
+                    yes: function(index, layero){//确定按钮回调函数
+                        if(auditPassBtn(id,state)){
+                            //关闭弹窗
+                            layer.close(index);
+                            //刷新列表
+                            window.location.reload();
+                        }
+                   }
+                });
+            }else{//审核不通过
+                state = "-1";
+                console.log(id,state,cashPrice,ygPrice);
+                jQuery.ajax({
+                    type:'POST',
+                       url:'',
+                    data:{"id":id,"state":state,"cash_price":cashPrice,"yg_price":ygPrice},
+                    beforeSend:function(){
+                      
+                    },
+                    success:function(data){
+                       //console.log(data)
+                       //刷新列表
+                       window.location.reload();
+                    }
+                 });
+            }
+        }
+        //审核通过的确定按钮事件
+        function auditPassBtn(id,state){
+            var reg = /^(?!0+(?:\.0+)?$)(?:[1-9]\d*|0)(?:\.\d{1,2})?$/;
+            var cashPrice = jQuery("input[name='cash_price']").val();
+            var ygPrice = jQuery("input[name='yg_price']").val();
+            if(reg.test(cashPrice) && reg.test(ygPrice)){
+                console.log(id,state,cashPrice,ygPrice)
+                jQuery.ajax({
+                        type:'POST',
+                           url:'',
+                        data:{"id":id,"state":state,"cash_price":cashPrice,"yg_price":ygPrice},
+                        beforeSend:function(){
+                          
+                        },
+                       success:function(data){
+                            //console.log(data)
+                        }
+                 });
+                return true;
+            }else{
+                alert("请填写准确的价格，最多保留两位小数")
+                return false;
+            }
+        }
+        </script>
